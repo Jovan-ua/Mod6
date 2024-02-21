@@ -48,15 +48,26 @@ public class DatabaseQueryService {
     public List<YoungestEldestWorkers> findYoungestAndEldestWorkers() throws IOException, SQLException {
         List<YoungestEldestWorkers> workers = new ArrayList<>();
 
-            String query = new String(Files.readAllBytes(Paths.get("sql/find_youngest_eldest_workers.sql")));
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-            while (resultSet.next()) {
-                String type = resultSet.getString("TYPE");
-                String name = resultSet.getString("NAME");
-                Date birthday = resultSet.getDate("BIRTHDAY");
-                workers.add(new YoungestEldestWorkers(type, name, birthday));
-            }
+        String query = new String(Files.readAllBytes(Paths.get("SELECT ? AS TYPE, NAME, BIRTHDAY " +
+                "FROM worker " +
+                "WHERE BIRTHDAY = (SELECT MAX(BIRTHDAY) FROM worker) " +
+                "UNION " +
+                "SELECT ? AS TYPE, NAME, BIRTHDAY " +
+                "FROM worker " +
+                "WHERE BIRTHDAY = (SELECT MIN(BIRTHDAY) FROM worker) " +
+                "ORDER BY BIRTHDAY DESC")));
+
+        PreparedStatement statement = connection.prepareStatement(query);
+        statement.setString(1, "YOUNGEST");
+        statement.setString(1, "ELDEST");
+
+        ResultSet resultSet = statement.executeQuery(query);
+        while (resultSet.next()) {
+            String type = resultSet.getString("TYPE");
+            String name = resultSet.getString("NAME");
+            Date birthday = resultSet.getDate("BIRTHDAY");
+            workers.add(new YoungestEldestWorkers(type, name, birthday));
+        }
         return workers;
     }
 
@@ -77,16 +88,15 @@ public class DatabaseQueryService {
 
     public List<ProjectPrice> printProjectPrices() throws IOException, SQLException {
         List<ProjectPrice> projectPrices = new ArrayList<>();
-            String query = new String(Files.readAllBytes(Paths.get("sql/print_project_prices.sql")));
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-            while (resultSet.next()) {
-                int id = resultSet.getInt("NAME");
-                int price = resultSet.getInt("PRICE");
-                projectPrices.add(new ProjectPrice(id, price));
-            }
+        String query = new String(Files.readAllBytes(Paths.get("sql/print_project_prices.sql")));
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+        while (resultSet.next()) {
+            int id = resultSet.getInt("NAME");
+            int price = resultSet.getInt("PRICE");
+            projectPrices.add(new ProjectPrice(id, price));
+        }
 
         return projectPrices;
     }
-
 }
